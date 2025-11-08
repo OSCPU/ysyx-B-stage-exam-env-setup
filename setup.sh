@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Repository URLs configuration
+GITEE_MIRROR="https://gitee.com/mirrors"
+GITHUB_YSYX_B_STAGE_CI_REPO="https://github.com/sashimi-yzh/ysyx-submit-test.git"
+
 retry_run() {
     local cmd=("$@")
     local retries=3
@@ -65,7 +69,7 @@ setup_env() {
     if command -v verilator &> /dev/null; then
         echo "Verilator is already installed."
     else
-        retry_run git clone https://gitee.com/mirrors/Verilator.git /tmp/verilator
+        retry_run git clone ${GITEE_MIRROR}/Verilator.git /tmp/verilator
         cd /tmp/verilator
         git checkout stable
         autoconf
@@ -81,7 +85,7 @@ setup_env() {
 
 setup_repo() {
     # clone repo
-    retry_run git clone --depth 1 -b $1 https://github.com/sashimi-yzh/ysyx-submit-test.git ysyx-workbench
+    retry_run git clone --depth 1 -b $1 ${GITHUB_YSYX_B_STAGE_CI_REPO} ysyx-workbench
     # create activate.sh
     echo "export B_EXAM_HOME=$(pwd)" > activate.sh
     echo "export YSYX_HOME=\$B_EXAM_HOME/ysyx-workbench" >> activate.sh
