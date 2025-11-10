@@ -4,13 +4,34 @@
 GITEE_MIRROR="https://gitee.com/mirrors"
 GITHUB_YSYX_B_STAGE_CI_REPO="https://github.com/sashimi-yzh/ysyx-submit-test.git"
 
+RED='\e[31m'
+GREEN='\e[32m'
+NC='\e[0m'
+WHITE_ON_BLACK='\e[37;40m'
+
+# helper output functions
+info() {
+    echo -e "${WHITE_ON_BLACK}$*${NC}"
+}
+success() {
+    echo -e "${GREEN}$*${NC}"
+}
+error() {
+    echo -e "${RED}$*${NC}" >&2
+}
+
+# set terminal to plain black background + white
+printf '%b' "${WHITE_ON_BLACK}"
+# restore colors on exit
+trap 'printf "%b" "${NC}"' EXIT
+
 retry_run() {
     local cmd=("$@")
     local retries=3
     local attempt=1
 
     while [ $attempt -le $retries ]; do
-        echo "Running command: ${cmd[*]}"
+        info "Running command: ${cmd[*]}"
         "${cmd[@]}"
         local exit_code=$?
 
@@ -19,13 +40,13 @@ retry_run() {
         else
             if [ $attempt -lt $retries ]; then
                 local next_attempt=$((attempt + 1))
-                echo "Command failed, retrying ..."
+                info "Command failed (attempt ${attempt}/${retries}), retrying ..."
             fi
         fi
         attempt=$((attempt + 1))
     done
 
-    echo "Command '${cmd[*]}' failed $retries times, exiting ..."
+    error "Command '${cmd[*]}' failed $retries times, exiting ..."
     exit 1
 }
 
@@ -39,21 +60,21 @@ setup_env() {
         local user_name
         user_name=$(git config user.name)
         if [ -z "$user_name" ]; then
-            echo "Error: git user.name not configured." >&2
-            echo "Please run 'git config --global user.name \"Your Name\"' to set your name." >&2
+            error "Error: git user.name not configured."
+            info "Please run 'git config --global user.name \"Your Name\"' to set your name."
             exit 1
         fi
 
         local user_email
         user_email=$(git config user.email)
         if [ -z "$user_email" ]; then
-            echo "Error: git user.email not configured." >&2
-            echo "Please run 'git config --global user.email \"you@example.com\"' to set your email." >&2
+            error "Error: git user.email not configured."
+            info "Please run 'git config --global user.email \"you@example.com\"' to set your email."
             exit 1
         fi
     else
         retry_run sudo apt install -y git
-        echo "Git installed. Please config git user.name and user.email before rerun this script."
+        info "Git installed. Please config git user.name and user.email before rerun this script."
         exit 1
     fi
 
@@ -67,7 +88,7 @@ setup_env() {
     sudo sed -i 's|^# include <gnu/stubs-ilp32.h>|//# include <gnu/stubs-ilp32.h>|' /usr/riscv64-linux-gnu/include/gnu/stubs.h
     # install verilator
     if command -v verilator &> /dev/null; then
-        echo "Verilator is already installed."
+        info "Verilator is already installed."
     else
         retry_run git clone ${GITEE_MIRROR}/Verilator.git /tmp/verilator
         cd /tmp/verilator
@@ -80,7 +101,7 @@ setup_env() {
         rm -rf /tmp/verilator
     fi
 
-    echo "Environment setup completed."
+    success "Environment setup completed."
 }
 
 setup_repo() {
@@ -135,7 +156,7 @@ setup_repo() {
     if [[ -e $YSYX_HOME/npc/.mill-version ]]; then
         MILL_VERSION=`cat $YSYX_HOME/npc/.mill-version`
     fi
-    echo "Downloading mill with version $MILL_VERSION"
+    info "Downloading mill with version $MILL_VERSION"
     retry_run sh -c "curl -L https://github.com/com-lihaoyi/mill/releases/download/$MILL_VERSION/$MILL_VERSION > $YSYX_HOME/../bin/mill"
     chmod +x $YSYX_HOME/../bin/mill
     # generate verilog for ysyxSoC
@@ -143,7 +164,7 @@ setup_repo() {
     retry_run make -C $YSYX_HOME/ysyxSoC dev-init
     retry_run make -C $YSYX_HOME/ysyxSoC verilog
 
-    echo "Student repo setup completed, run 'source activate.sh' to activate the environment."
+    success "Student repo setup completed, run 'source activate.sh' to activate the environment."
 }
 
 clean_repo() {
@@ -185,8 +206,8 @@ clean_repo() {
 }
 
 if [ -z "$1" ]; then
-    echo "Error: No argument specified."
-    echo "Usage: $0 {env|repo|clean}"
+    error "Error: No argument specified."
+    info "Usage: $0 {env|repo|clean}"
     exit 1
 fi
 
@@ -201,8 +222,8 @@ case "$1" in
         clean_repo
         ;;
     *)
-        echo "Error: Unknown argument '$1'."
-        echo "Usage: $0 {env|repo|clean}"
+        error "Error: Unknown argument '$1'."
+        info "Usage: $0 {env|repo|clean}"
         exit 1
         ;;
 esac
