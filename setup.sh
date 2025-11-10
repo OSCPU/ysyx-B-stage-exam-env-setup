@@ -50,6 +50,27 @@ retry_run() {
     exit 1
 }
 
+# Sanity check for required tools
+sanity_check() {
+    local -a cmds=(git wget curl gcc g++ gdb make autoconf scons python3 perl flex bison ccache javac riscv64-linux-gnu-gcc)
+    local missing=()
+
+    for c in "${cmds[@]}"; do
+        if ! command -v "$c" &> /dev/null; then
+            missing+=("$c")
+        fi
+    done
+
+    if [ ${#missing[@]} -ne 0 ]; then
+        error "Sanity check failed. Missing required tools:"
+        for m in "${missing[@]}"; do
+            error "  - $m"
+        done
+        error "Please run '$0 env' to install the required tools and re-run this command."
+        exit 1
+    fi
+}
+
 setup_env() {
     # apt update & upgrade
     retry_run sudo apt update
@@ -216,9 +237,11 @@ case "$1" in
         setup_env
         ;;
     repo)
+        sanity_check
         setup_repo $2 
         ;;
     clean)
+        sanity_check
         clean_repo
         ;;
     *)
