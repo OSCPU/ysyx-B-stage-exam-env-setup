@@ -16,7 +16,7 @@ setup.sh env
 ```
 具体而言，脚本进行如下工作：
 1. 更新软件包列表，并更新所有软件包
-2. 检查 git email 和 username，若未设置则报错并退出
+2. 检查 git email 和 username，若未设置则要求设置
 3. 安装所有需要的软件包，并修复 riscv32 编译错误
 4. 检查 verilator，若未安装则从 gitee 克隆源码并编译安装
 
