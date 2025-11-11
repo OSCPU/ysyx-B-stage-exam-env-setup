@@ -169,8 +169,7 @@ setup_repo() {
     # cd into workbench
     cd $YSYX_HOME
     # disable git tracer
-    echo ".git_commit:" >> Makefile
-    echo -e "\t@echo git tracer is disabled" >> Makefile
+    echo -e "\ndefine git_commit\n\t@echo git tracer is disabled\nendef" >> Makefile
     # clone other repos
     retry_run git clone --depth 1 https://github.com/NJU-ProjectN/am-kernels
     retry_run git clone --depth 1 https://github.com/NJU-ProjectN/rt-thread-am
