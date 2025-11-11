@@ -142,6 +142,12 @@ setup_env() {
 setup_repo() {
     # clone repo
     retry_run git clone --depth 1 -b $1 ${GITHUB_YSYX_B_STAGE_CI_REPO} ysyx-workbench
+
+    # record last two commits (hash, date, subject) from the student's repo
+    LOG="$(git -C ysyx-workbench log -n 2 --pretty=format:'%h %ad %s' --date=iso 2>/dev/null || true)"
+    # escape single quotes for embedding into activate.sh
+    LOG_ESCAPED=$(printf "%s" "$LOG" | sed "s/'/'\\\\''/g")
+
     # create activate.sh
     echo "export B_EXAM_HOME=$(pwd)" > activate.sh
     echo "export YSYX_HOME=\$B_EXAM_HOME/ysyx-workbench" >> activate.sh
@@ -151,6 +157,12 @@ setup_repo() {
     echo "export NPC_HOME=\$YSYX_HOME/npc" >> activate.sh
     echo "export NVBOARD_HOME=\$YSYX_HOME/nvboard" >> activate.sh
     echo "export PATH=\$B_EXAM_HOME/bin:\$PATH" >> activate.sh
+
+    # embed recent commit info and a helper to display it when activate.sh is sourced
+    echo "export B_EXAM_REPO_HEAD_LOG='$LOG_ESCAPED'" >> activate.sh
+    echo 'echo "Repository ysyx-workbench recent commits:"' >> activate.sh
+    echo 'echo "$B_EXAM_REPO_HEAD_LOG"' >> activate.sh
+
     source activate.sh
     # cd into workbench
     cd $YSYX_HOME
