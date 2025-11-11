@@ -217,6 +217,11 @@ setup_repo() {
 clean_repo() {
     YSYX_HOME=$(pwd)/ysyx-workbench
 
+    # Use mutiple ways to clean just in case
+    make -C $YSYX_HOME/nemu clean
+    make -C $YSYX_HOME/am-kernels clean-all
+    make -C $YSYX_HOME/npc clean
+
     cd $YSYX_HOME
     git clean -xdf
     rm -rf ./.git
