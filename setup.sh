@@ -264,9 +264,14 @@ clean_repo() {
 
 pack_repo() {
 	YSYX_HOME=$(pwd)/ysyx-workbench
-    PLAIN_ARCHIVE="ysyx-workbench.tar.bz2"
-    ENCRYPTED_ARCHIVE="ysyx-b-exam.tar.bz2"
 
+	# Get current branch name
+	cd "$YSYX_HOME"
+	BRANCH_NAME_STUDENT_ID=$(git branch --show-current)
+	cd ..
+
+    PLAIN_ARCHIVE="${BRANCH_NAME_STUDENT_ID}-ysyx-workbench.tar.bz2"
+    ENCRYPTED_ARCHIVE="${BRANCH_NAME_STUDENT_ID}-ysyx-b-exam.tar.bz2"
 	if [ ! -d "$YSYX_HOME" ]; then
 		error "Directory 'ysyx-workbench' not found in $(pwd). Aborting."
 		exit 1
