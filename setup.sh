@@ -265,7 +265,7 @@ clean_repo() {
 pack_repo() {
 	YSYX_HOME=$(pwd)/ysyx-workbench
 
-	# Get current branch name
+	# Get student ID
 	cd "$YSYX_HOME"
 	BRANCH_NAME_STUDENT_ID=$(git branch --show-current)
 	cd ..
