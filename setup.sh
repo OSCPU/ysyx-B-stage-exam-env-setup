@@ -216,8 +216,6 @@ setup_repo() {
 }
 
 clean_repo() {
-    YSYX_HOME=$(pwd)/ysyx-workbench
-
     # Use mutiple ways to clean just in case
     make -C $YSYX_HOME/nemu clean
     make -C $YSYX_HOME/am-kernels clean-all clean
@@ -263,12 +261,16 @@ clean_repo() {
 }
 
 pack_repo() {
-	YSYX_HOME=$(pwd)/ysyx-workbench
+    # Require YSYX_HOME to be set by the user (activate.sh).
+    # `clean` and other pre-pack steps need additional environment variables
+    # so we do not set YSYX_HOME automatically here.
+    if [ -z "$YSYX_HOME" ]; then
+        error "Environment variable YSYX_HOME is not set. Please run 'source activate.sh' before running 'pack'."
+       exit 1
+    fi
 
-	# Get student ID
-	cd "$YSYX_HOME"
-	BRANCH_NAME_STUDENT_ID=$(git branch --show-current)
-	cd ..
+    # Get student ID (current branch) from the repo
+    BRANCH_NAME_STUDENT_ID=$(git -C "$YSYX_HOME" branch --show-current)
 
     PLAIN_ARCHIVE="${BRANCH_NAME_STUDENT_ID}-ysyx-workbench.tar.bz2"
     ENCRYPTED_ARCHIVE="${BRANCH_NAME_STUDENT_ID}-ysyx-b-exam.tar.bz2"
@@ -293,21 +295,55 @@ pack_repo() {
 	info "Running clean_repo to strip VCS metadata..."
 	clean_repo
 
-	KEY=$(base64 /dev/random | head -c 16)
+    # If a key file already exists, reuse it as the key.
+    if [ -f ysyx-b-exam-key.txt ]; then
+        read -r KEY < ysyx-b-exam-key.txt
+        info "Using existing encryption key from ysyx-b-exam-key.txt"
+    else
+        KEY=$(base64 /dev/random | head -c 16)
+        # Write key to file without adding a trailing newline
+        printf "%s" "$KEY" > ysyx-b-exam-key.txt
+    fi
 
-	info "Creating encrypted archive: $ENCRYPTED_ARCHIVE"
-	tar cj ysyx-workbench activate.sh bin | openssl aes256 -k "$KEY" > "$ENCRYPTED_ARCHIVE"
+    info "Creating encrypted archive: $ENCRYPTED_ARCHIVE"
+    tar cj ysyx-workbench activate.sh bin | openssl aes256 -k "$KEY" > "$ENCRYPTED_ARCHIVE"
 
-	success "Pack completed."
-	info "Plain archive: $GREEN$PLAIN_ARCHIVE"
-	info "Encrypted archive: $GREEN$ENCRYPTED_ARCHIVE"
-	info "Encryption key: $RED$KEY"
-    echo $KEY > ysyx-b-exam-key.txt
+    success "Pack completed."
+    info "Plain archive: $GREEN$PLAIN_ARCHIVE"
+    info "Encrypted archive: $GREEN$ENCRYPTED_ARCHIVE"
+    info "Encryption key: $RED$KEY"
+}
+
+# Unpack a non-encrypted student archive to the current directory.
+unpack_repo() {
+        # The script expects exactly one file matching '*-ysyx-workbench.tar.bz2'.
+        shopt -s nullglob
+        matches=( *-ysyx-workbench.tar.bz2 )
+        shopt -u nullglob
+
+        if [ ${#matches[@]} -eq 0 ]; then
+            error "No '*-ysyx-workbench.tar.bz2' archive found in $(pwd)."
+            exit 1
+        fi
+
+        if [ ${#matches[@]} -gt 1 ]; then
+            error "Multiple '*-ysyx-workbench.tar.bz2' archives found in $(pwd):"
+            for f in "${matches[@]}"; do
+                info "  - $f"
+            done
+            error "Please ensure only one such archive is present and retry."
+            exit 1
+        fi
+
+        ARCHIVE="${matches[0]}"
+        info "Found archive: $ARCHIVE. Extracting..."
+        tar xjf "$ARCHIVE"
+        success "Extraction completed."
 }
 
 if [ -z "$1" ]; then
     error "Error: No argument specified."
-    info "Usage: $0 {env|repo|pack}"
+    info "Usage: $0 {env|repo|pack|unpack}"
     exit 1
 fi
 
@@ -320,15 +356,13 @@ case "$1" in
         check_git_config
         setup_repo $2 
         ;;
-#    clean)
-#        sanity_check
-#        check_git_config
-#        clean_repo
-#        ;;
     pack)
         sanity_check
         check_git_config
         pack_repo
+        ;;
+    unpack)
+        unpack_repo
         ;;
     *)
         error "Error: Unknown argument '$1'."
