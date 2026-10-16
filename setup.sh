@@ -179,7 +179,7 @@ setup_env() {
         gcc g++ gdb make build-essential autoconf scons \
         python-is-python3 help2man perl flex bison ccache \
         libreadline-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev \
-        g++-riscv64-linux-gnu llvm llvm-dev device-tree-compiler
+        g++-riscv64-linux-gnu llvm llvm-dev device-tree-compiler libjemalloc-dev
     # fix compile error using riscv64-linux-gnu
     $SUDO sed -i 's|^# include <gnu/stubs-ilp32.h>|//# include <gnu/stubs-ilp32.h>|' /usr/riscv64-linux-gnu/include/gnu/stubs.h
     # install verilator
